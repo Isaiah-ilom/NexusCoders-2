@@ -1,4 +1,4 @@
-name: NexusCoders WhatsApp Bot CI
+name: NexusCoders WhatsApp Bot CI/CD
 
 on:
   push:
@@ -9,24 +9,18 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x]
-
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: '18.x'
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
 
   lint:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js
@@ -40,19 +34,10 @@ jobs:
     needs: [build, lint]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
     steps:
     - uses: actions/checkout@v3
-    - name: Deploy to server
+    - name: Deploy to chosen platform
       env:
-        PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-        HOST: ${{ secrets.SERVER_HOST }}
-        USER: ${{ secrets.SERVER_USER }}
+        DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
       run: |
-        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
-          cd /path/to/your/project &&
-          git pull origin main &&
-          npm install &&
-          pm2 restart nexuscoders-bot
-        '
+        curl -X POST $DEPLOY_URL
